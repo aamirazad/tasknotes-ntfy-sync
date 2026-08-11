@@ -23,6 +23,7 @@ dev = [
   "pytest-asyncio>=1.1,<2",
   "respx>=0.22,<0.23",
   "ruff>=0.12,<0.13",
+  "types-PyYAML>=6.0.12,<7",
 ]
 
 [project.scripts]
@@ -48,3 +49,6 @@ python_version = "3.11"
 strict = true
 packages = ["tasknotes_ntfy"]
 
+[[tool.mypy.overrides]]
+module = "isodate"
+ignore_missing_imports = true
