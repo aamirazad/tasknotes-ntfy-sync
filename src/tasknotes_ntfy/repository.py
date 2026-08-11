@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import cast
 
-from .domain import OccurrenceState, ReminderOccurrence, Task
+from .domain import ClaimedOccurrence, OccurrenceState, ReminderOccurrence, Task
 
 SCHEMA_VERSION = 1
 
@@ -329,6 +329,114 @@ class Repository:
                 """,
                 (state,),
             )
+        )
+
+    def claim_due(
+        self,
+        now: datetime,
+        *,
+        grace: timedelta,
+        lease: timedelta,
+        limit: int = 20,
+    ) -> list[ClaimedOccurrence]:
+        timestamp = utc_text(now)
+        stale_claim = utc_text(now - lease)
+        grace_cutoff = utc_text(now - grace)
+        claimed: list[ClaimedOccurrence] = []
+        with self.transaction():
+            self.connection.execute(
+                """
+                UPDATE reminder_occurrences
+                SET state='retry', next_attempt_at_utc=?, claimed_at_utc=NULL,
+                    last_error='delivery claim lease expired', updated_at_utc=?
+                WHERE state='sending' AND claimed_at_utc < ?
+                """,
+                (timestamp, timestamp, stale_claim),
+            )
+            self.connection.execute(
+                """
+                UPDATE reminder_occurrences SET state='expired', updated_at_utc=?
+                WHERE state='scheduled' AND effective_at_utc < ?
+                """,
+                (timestamp, grace_cutoff),
+            )
+            rows = self.connection.execute(
+                """
+                SELECT * FROM reminder_occurrences
+                WHERE (
+                    state='scheduled' AND effective_at_utc <= ?
+                    AND effective_at_utc >= ?
+                ) OR (
+                    state='retry' AND next_attempt_at_utc <= ?
+                )
+                ORDER BY COALESCE(next_attempt_at_utc, effective_at_utc), occurrence_id
+                LIMIT ?
+                """,
+                (timestamp, grace_cutoff, timestamp, limit),
+            ).fetchall()
+            for row in rows:
+                updated = self.connection.execute(
+                    """
+                    UPDATE reminder_occurrences
+                    SET state='sending', claimed_at_utc=?, attempt_count=attempt_count+1,
+                        updated_at_utc=?
+                    WHERE occurrence_id=? AND state IN ('scheduled', 'retry')
+                    """,
+                    (timestamp, timestamp, row["occurrence_id"]),
+                )
+                if updated.rowcount != 1:
+                    continue
+                claimed.append(
+                    ClaimedOccurrence(
+                        occurrence_id=str(row["occurrence_id"]),
+                        title=str(row["notification_title"]),
+                        message=str(row["notification_message"]),
+                        click_url=str(row["click_url"]),
+                        ntfy_priority=int(row["ntfy_priority"]),
+                        ntfy_message_id=str(row["ntfy_message_id"]),
+                        attempt_count=int(row["attempt_count"]) + 1,
+                    )
+                )
+        return claimed
+
+    def mark_sent(self, occurrence_id: str, now: datetime) -> None:
+        timestamp = utc_text(now)
+        self.connection.execute(
+            """
+            UPDATE reminder_occurrences
+            SET state='sent', sent_at_utc=?, claimed_at_utc=NULL,
+                next_attempt_at_utc=NULL, last_error=NULL, updated_at_utc=?
+            WHERE occurrence_id=? AND state='sending'
+            """,
+            (timestamp, timestamp, occurrence_id),
+        )
+
+    def mark_retry(
+        self,
+        occurrence_id: str,
+        now: datetime,
+        next_attempt: datetime,
+        error: str,
+    ) -> None:
+        self.connection.execute(
+            """
+            UPDATE reminder_occurrences
+            SET state='retry', next_attempt_at_utc=?, claimed_at_utc=NULL,
+                last_error=?, updated_at_utc=?
+            WHERE occurrence_id=? AND state='sending'
+            """,
+            (utc_text(next_attempt), error[:500], utc_text(now), occurrence_id),
+        )
+
+    def mark_failed(self, occurrence_id: str, now: datetime, error: str) -> None:
+        self.connection.execute(
+            """
+            UPDATE reminder_occurrences
+            SET state='failed', claimed_at_utc=NULL, next_attempt_at_utc=NULL,
+                last_error=?, updated_at_utc=?
+            WHERE occurrence_id=? AND state='sending'
+            """,
+            (error[:500], utc_text(now), occurrence_id),
         )
 
     def get_task(self, path: str) -> sqlite3.Row | None:

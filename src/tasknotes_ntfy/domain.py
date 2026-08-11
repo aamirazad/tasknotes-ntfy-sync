@@ -69,3 +69,14 @@ class ReminderOccurrence:
     click_url: str
     ntfy_priority: int
     ntfy_message_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class ClaimedOccurrence:
+    occurrence_id: str
+    title: str
+    message: str
+    click_url: str
+    ntfy_priority: int
+    ntfy_message_id: str
+    attempt_count: int
