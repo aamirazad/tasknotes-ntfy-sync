@@ -29,10 +29,12 @@ class Reconciler:
         repository: Repository,
         *,
         clock: Callable[[], datetime] | None = None,
+        scan_completed: Callable[[datetime], None] | None = None,
     ) -> None:
         self.settings = settings
         self.repository = repository
         self.clock = clock or (lambda: datetime.now(UTC))
+        self.scan_completed = scan_completed
 
     def desired_occurrences(self, task: Task) -> list[ReminderOccurrence]:
         desired: list[ReminderOccurrence] = []
@@ -161,6 +163,8 @@ class Reconciler:
             valid_task_count=valid_count,
             error_count=error_count,
         )
+        if self.scan_completed is not None:
+            self.scan_completed(finished)
         duration_ms = int((finished - started).total_seconds() * 1000)
         log_event(
             logger,

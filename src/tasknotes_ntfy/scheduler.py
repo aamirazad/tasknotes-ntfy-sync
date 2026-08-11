@@ -33,12 +33,14 @@ class Scheduler:
         *,
         clock: Callable[[], datetime] | None = None,
         jitter: Callable[[float, float], float] | None = None,
+        heartbeat: Callable[[datetime], None] | None = None,
     ) -> None:
         self.settings = settings
         self.repository = repository
         self.publisher = publisher
         self.clock = clock or (lambda: datetime.now(UTC))
         self.jitter = jitter or random.uniform
+        self.heartbeat = heartbeat
 
     def _retry_delay(self, attempt: int, retry_after: float | None) -> float:
         if retry_after is not None:
@@ -102,6 +104,8 @@ class Scheduler:
                     occurrence_id=occurrence.occurrence_id[:12],
                     attempt=occurrence.attempt_count,
                 )
+        if self.heartbeat is not None:
+            self.heartbeat(self.clock())
         return len(claimed)
 
     async def run(self, stop: asyncio.Event) -> None:
