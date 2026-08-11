@@ -97,6 +97,14 @@ def check_health(settings: Settings, now: datetime | None = None) -> dict[str, A
             connection.execute("SELECT version FROM schema_version").fetchone()
     except sqlite3.Error:
         reasons.append("SQLite database is not queryable")
+    if settings.sync_health_path.exists():
+        try:
+            sync_state = json.loads(settings.sync_health_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            reasons.append("sync health state is invalid")
+        else:
+            if not sync_state.get("healthy"):
+                reasons.append("Obsidian Sync is not ready")
     return {
         "healthy": not reasons,
         "status": "healthy" if not reasons else "unhealthy",

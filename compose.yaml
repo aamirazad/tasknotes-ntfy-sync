@@ -1,0 +1,36 @@
+services:
+  tasknotes-ntfy:
+    build:
+      context: .
+      platforms:
+        - linux/amd64
+    image: tasknotes-ntfy:0.1.0
+    platform: linux/amd64
+    env_file:
+      - ${ENV_FILE:-.env}
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - KILL
+      - SETGID
+      - SETUID
+    pids_limit: 256
+    mem_limit: 768m
+    cpus: 1.0
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      start_period: 2m
+      retries: 3

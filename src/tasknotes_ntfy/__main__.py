@@ -19,6 +19,7 @@ from .reconcile import Reconciler
 from .reminder_time import ReminderResolutionError, resolve_reminder
 from .repository import Repository
 from .service import run_service
+from .supervisor import supervise
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -141,7 +142,8 @@ def main() -> int:
             )
         )
         return 0
-    print("supervisor is only available in the container image", file=sys.stderr)
+    if args.command == "supervise":
+        return asyncio.run(supervise(settings))
     return 1
 
 

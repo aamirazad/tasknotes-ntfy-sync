@@ -64,6 +64,9 @@ class Settings(BaseSettings):
         default=Path("/data/notifier/reminders.sqlite3"), alias="DATABASE_PATH"
     )
     health_path: Path = Field(default=Path("/data/notifier/health.json"), alias="HEALTH_PATH")
+    sync_health_path: Path = Field(
+        default=Path("/data/notifier/sync-health.json"), alias="SYNC_HEALTH_PATH"
+    )
 
     @field_validator("completed_statuses", mode="before")
     @classmethod
@@ -133,13 +136,17 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_paths(self) -> Settings:
+        if self.sync_health_path == Path("/data/notifier/sync-health.json"):
+            self.sync_health_path = self.data_root / "notifier" / "sync-health.json"
         try:
             self.vault_root.relative_to(self.data_root)
             self.database_path.relative_to(self.data_root)
             self.health_path.relative_to(self.data_root)
+            self.sync_health_path.relative_to(self.data_root)
         except ValueError as exc:
             raise ValueError(
-                "VAULT_ROOT, DATABASE_PATH, and HEALTH_PATH must be under DATA_ROOT"
+                "VAULT_ROOT, DATABASE_PATH, HEALTH_PATH, and SYNC_HEALTH_PATH "
+                "must be under DATA_ROOT"
             ) from exc
         return self
 
