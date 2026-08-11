@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install uv==0.8.24
+      - run: uv sync --frozen --extra dev
+      - run: .venv/bin/ruff format --check .
+      - run: .venv/bin/ruff check .
+      - run: .venv/bin/mypy
+      - run: .venv/bin/pytest
+
+  container:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install uv==0.8.24
+      - run: uv sync --frozen --extra dev
+      - run: ENV_FILE=.env.example docker compose config --quiet
+      - run: RUN_CONTAINER_TESTS=1 .venv/bin/pytest tests/container

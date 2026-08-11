@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.7
-FROM --platform=linux/amd64 node:22-bookworm-slim AS headless
+FROM --platform=linux/amd64 node:22-bookworm-slim@sha256:d649c27dae7ba0137b3cef5dd75baa422c08dc3d9e3fc0c23dfb172dc3cc6436 AS headless
 ARG OBSIDIAN_HEADLESS_VERSION=0.0.14
 RUN npm install --global --prefix /opt/obsidian "obsidian-headless@${OBSIDIAN_HEADLESS_VERSION}" \
     && /opt/obsidian/bin/ob --version
 
-FROM --platform=linux/amd64 python:3.13-slim-bookworm AS python-build
+FROM --platform=linux/amd64 python:3.13-slim-bookworm@sha256:00faa2debb87529f9f0764e9491d8ba400a3678976616c3bd7cb193745ac20d1 AS python-build
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
@@ -14,11 +14,10 @@ COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 RUN uv sync --frozen --no-dev --no-editable
 
-FROM --platform=linux/amd64 python:3.13-slim-bookworm AS runtime
+FROM --platform=linux/amd64 python:3.13-slim-bookworm@sha256:00faa2debb87529f9f0764e9491d8ba400a3678976616c3bd7cb193745ac20d1 AS runtime
 ARG APP_VERSION=0.1.0
 LABEL org.opencontainers.image.title="tasknotes-ntfy" \
-      org.opencontainers.image.version="${APP_VERSION}" \
-      org.opencontainers.image.source="https://github.com/example/tasknotes-ntfy-sync"
+      org.opencontainers.image.version="${APP_VERSION}"
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends libstdc++6 tini \
     && rm -rf /var/lib/apt/lists/* \

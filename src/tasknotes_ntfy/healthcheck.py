@@ -117,8 +117,12 @@ def main() -> int:
     try:
         settings = Settings()  # type: ignore[call-arg]
         result = check_health(settings)
-    except Exception as exc:
-        result = {"healthy": False, "status": "unhealthy", "reasons": [str(exc)]}
+    except Exception:
+        result = {
+            "healthy": False,
+            "status": "unhealthy",
+            "reasons": ["configuration or health check failed"],
+        }
     print(json.dumps(result, separators=(",", ":"), default=str))
     return 0 if result["healthy"] else 1
 

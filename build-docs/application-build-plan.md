@@ -1,6 +1,6 @@
 # TaskNotes to ntfy Notification Service — Build Plan
 
-Status: awaiting final configuration confirmation  
+Status: implemented and automated validation complete; real-service production acceptance pending
 Last updated: 2026-08-11  
 Target TaskNotes fixture version: 4.12.3  
 Deployment model: one self-initializing Docker container on an amd64 remote host, running Obsidian Headless in pull-only continuous-sync mode alongside the notifier
@@ -998,7 +998,7 @@ SQLite backup should use SQLite's online backup mechanism or a stopped container
 - The pull-only guard must prevent newly reset sync state from defaulting to bidirectional mode unnoticed.
 - If the configured remote vault differs from persisted state, startup fails without unlinking or altering the existing state.
 
-## 21. Confirmed decisions and remaining inputs
+## 21. Confirmed decisions and production inputs
 
 Confirmed on 2026-08-11:
 
@@ -1016,13 +1016,21 @@ Confirmed on 2026-08-11:
 - The entire application runs in one self-initializing Docker container configured by `.env` and one persistent `/data` mount.
 - Runtime credentials and the high-entropy topic may be supplied through the Git-ignored, mode-`0600` `.env` file; they are never copied into the image.
 
-Still required before implementation begins:
+The implementation uses runtime configuration and is complete without embedding these
+deployment-specific values. The following are still required before production rollout:
 
 1. The exact production Obsidian Sync remote vault name for `OBSIDIAN_REMOTE_VAULT`.
 2. The local vault name installed on the phone for `OBSIDIAN_DEEP_LINK_VAULT`; it may differ from the remote Sync vault name.
 3. Confirmation that the production task directory and identifying property remain `Efforts/Tasks`, `base`, and `[[Tasks.base]]`, or their actual values.
-4. Confirmation that a Python executable/process satisfies the word “binary”; otherwise the notifier should be redesigned as a literal native compiled binary before coding.
-5. Choice of auth-token provisioning: place an existing `OBSIDIAN_AUTH_TOKEN` in `.env`, or run a one-time interactive `login` command from the same image and persist the resulting token under `/data`.
-6. Acceptance of the proposed uncommon-case titles: `was due ... ago`, `was scheduled ... ago`, and `<Task name> reminder` for absolute reminders.
+4. An existing `OBSIDIAN_AUTH_TOKEN` placed in the mode-`0600` `.env` file.
+5. Separate high-entropy test and production ntfy topics and completion of the real-service
+   checklist in `build-docs/production-acceptance.md`.
+
+Implementation choices now resolved:
+
+- The notifier is the planned Python executable/process rather than a native compiled file.
+- Auth-token provisioning uses `OBSIDIAN_AUTH_TOKEN` from `.env`.
+- The uncommon-case titles are implemented as `was due ... ago`,
+  `was scheduled ... ago`, and `<Task name> reminder`.
 
 The current high-entropy topic must be moved to the local `.env` file and must not be written into committed configuration or documentation.
