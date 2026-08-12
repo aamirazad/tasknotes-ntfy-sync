@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     obsidian_auth_token: SecretStr = Field(alias="OBSIDIAN_AUTH_TOKEN")
     obsidian_e2ee_password: SecretStr | None = Field(default=None, alias="OBSIDIAN_E2EE_PASSWORD")
     obsidian_device_name: str = Field(default="tasknotes-ntfy", alias="OBSIDIAN_DEVICE_NAME")
+    obsidian_excluded_folders: Annotated[tuple[str, ...], NoDecode] = Field(
+        default=(), alias="OBSIDIAN_EXCLUDED_FOLDERS"
+    )
     tasks_path: str = Field(default="Efforts/Tasks", alias="TASKS_PATH")
     task_property_name: str = Field(default="base", alias="TASK_PROPERTY_NAME")
     task_property_value: str = Field(default="[[Tasks.base]]", alias="TASK_PROPERTY_VALUE")
@@ -47,7 +50,7 @@ class Settings(BaseSettings):
     ntfy_base_url: str = Field(default="https://ntfy.sh", alias="NTFY_BASE_URL")
     ntfy_topic: SecretStr = Field(alias="NTFY_TOPIC")
     ntfy_access_token: SecretStr | None = Field(default=None, alias="NTFY_ACCESS_TOKEN")
-    notification_tag: str = Field(default="calendar", alias="NOTIFICATION_TAG")
+    notification_tag: str = Field(default="", alias="NOTIFICATION_TAG")
     body_max_bytes: int = Field(default=1000, ge=64, le=4096, alias="BODY_MAX_BYTES")
     max_file_bytes: int = Field(default=2_097_152, ge=1024, alias="MAX_FILE_BYTES")
     reconcile_interval_seconds: float = Field(default=60, gt=0, alias="RECONCILE_INTERVAL_SECONDS")
@@ -73,6 +76,13 @@ class Settings(BaseSettings):
     def parse_completed_statuses(cls, value: Any) -> Any:
         if isinstance(value, str):
             return frozenset(item.strip() for item in value.split(",") if item.strip())
+        return value
+
+    @field_validator("obsidian_excluded_folders", mode="before")
+    @classmethod
+    def parse_obsidian_excluded_folders(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return tuple(item.strip() for item in value.split(",") if item.strip())
         return value
 
     @field_validator("priority_map", mode="before")
@@ -126,7 +136,6 @@ class Settings(BaseSettings):
         "obsidian_device_name",
         "task_property_name",
         "task_property_value",
-        "notification_tag",
     )
     @classmethod
     def require_nonempty(cls, value: str) -> str:

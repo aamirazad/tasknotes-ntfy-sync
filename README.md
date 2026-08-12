@@ -39,8 +39,10 @@ At minimum, replace these values:
 
 Confirm `TASKS_PATH`, `TASK_PROPERTY_NAME`, and `TASK_PROPERTY_VALUE` for the production
 vault. Defaults match the supplied fixture (`Efforts/Tasks`, `base`, and `[[Tasks.base]]`).
-The other defaults implement `America/New_York`, 07:00 for date-only anchors, and a
-15-minute late-delivery grace window. `.env.example` documents every common override.
+Set `OBSIDIAN_EXCLUDED_FOLDERS` to a comma-separated list (for example,
+`Archive,Private/Attachments`) to exclude folders from Sync; leave it empty to clear
+exclusions. The other defaults implement `America/New_York`, 07:00 for date-only anchors,
+and a 15-minute late-delivery grace window. `.env.example` documents every common override.
 
 Do not commit `.env`. Back it up through the same secrets mechanism used for the host.
 

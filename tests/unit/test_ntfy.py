@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -58,6 +59,28 @@ async def test_publish_uses_json_sequence_id_and_optional_auth(tmp_path: Path) -
     assert '"topic":"secret-topic"' in body
     assert '"sequence_id":"tn-stable-sequence"' in body
     assert captured.headers["Authorization"] == "Bearer access"
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_publish_sends_invisible_body_and_omits_tag_when_optional(tmp_path: Path) -> None:
+    captured: httpx.Request | None = None
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal captured
+        captured = request
+        return httpx.Response(200)
+
+    empty_body = ClaimedOccurrence(
+        "occurrence", "Title", "", "obsidian://open", 4, "tn-stable-sequence", 1
+    )
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    await NtfyPublisher(settings(tmp_path), client).publish(empty_body)
+
+    assert captured is not None
+    payload = json.loads(captured.content)
+    assert payload["message"] == "\u200b"
+    assert "tags" not in payload
     await client.aclose()
 
 

@@ -57,17 +57,21 @@ class NtfyPublisher:
             await self.client.aclose()
 
     async def publish(self, occurrence: ClaimedOccurrence) -> None:
+        # ntfy replaces an empty message with its "triggered" default. A zero-width
+        # space renders as an empty notification body while preserving that intent.
+        message = occurrence.message or "\u200b"
         payload = {
             "topic": self.settings.ntfy_topic.get_secret_value(),
             "title": occurrence.title,
-            "message": occurrence.message,
+            "message": message,
             "priority": occurrence.ntfy_priority,
             "click": occurrence.click_url,
-            "tags": [self.settings.notification_tag],
             "markdown": True,
             # ntfy uses this to update the same client notification on an ambiguous retry.
             "sequence_id": occurrence.ntfy_message_id,
         }
+        if self.settings.notification_tag:
+            payload["tags"] = [self.settings.notification_tag]
         try:
             response = await self.client.post(
                 self.settings.ntfy_base_url, json=payload, headers=self.headers

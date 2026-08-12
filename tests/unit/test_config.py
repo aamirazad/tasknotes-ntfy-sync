@@ -30,8 +30,16 @@ def make_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, **overrides: 
 def test_defaults_and_csv_parsing(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     settings = make_settings(monkeypatch, tmp_path, COMPLETED_STATUSES="Done, Not doing")
     assert settings.completed_statuses == frozenset({"Done", "Not doing"})
+    assert settings.obsidian_excluded_folders == ()
     assert settings.date_only_time.isoformat() == "07:00:00"
     assert settings.priority_map["High"] == 4
+
+
+def test_parses_obsidian_excluded_folders(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    settings = make_settings(
+        monkeypatch, tmp_path, OBSIDIAN_EXCLUDED_FOLDERS="Archive, Attachments/Private,  Logs "
+    )
+    assert settings.obsidian_excluded_folders == ("Archive", "Attachments/Private", "Logs")
 
 
 def test_rejects_path_escape(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

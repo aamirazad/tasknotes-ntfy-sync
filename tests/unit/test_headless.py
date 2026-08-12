@@ -65,6 +65,21 @@ def test_first_setup_resolves_unique_vault_and_enforces_pull_only(tmp_path: Path
     assert config[config.index("--mode") + 1] == "pull-only"
     assert config[config.index("--configs") + 1] == ""
     assert config[config.index("--file-types") + 1] == ""
+    assert config[config.index("--excluded-folders") + 1] == ""
+
+
+def test_excluded_folders_are_applied_to_sync_configuration(tmp_path: Path) -> None:
+    configured = settings(tmp_path, obsidian_excluded_folders=("Archive", "Private/Attachments"))
+    runner = FakeRunner(
+        [
+            (0, {"vaultId": "id-1", "vaultName": "Remote Vault", "syncMode": "pull-only"}),
+            (0, {}),
+            (0, {"vaultId": "id-1", "vaultName": "Remote Vault", "syncMode": "pull-only"}),
+        ]
+    )
+    HeadlessManager(configured, runner, {}).ensure_configured()
+    config = runner.calls[1]
+    assert config[config.index("--excluded-folders") + 1] == "Archive,Private/Attachments"
 
 
 def test_existing_configuration_is_reused_without_password(tmp_path: Path) -> None:

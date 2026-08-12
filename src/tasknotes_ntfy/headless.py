@@ -121,6 +121,8 @@ class HeadlessManager:
                 "",
                 "--file-types",
                 "",
+                "--excluded-folders",
+                ",".join(self.settings.obsidian_excluded_folders),
                 "--json",
             ]
         )

@@ -52,11 +52,11 @@ def test_contextual_titles() -> None:
     assert notification_title(task(), absolute) == "Write report reminder"
 
 
-def test_utf8_byte_safe_truncation_and_empty_fallback() -> None:
+def test_utf8_byte_safe_truncation_and_empty_body() -> None:
     value = truncate_utf8("é" * 100, 10)
     assert value == "ééé…"
     assert len(value.encode()) <= 10
-    assert truncate_utf8(" \n ", 100) == "Open this task in Obsidian."
+    assert truncate_utf8(" \n ", 100) == ""
 
 
 def test_obsidian_url_encoding() -> None:

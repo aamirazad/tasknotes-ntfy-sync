@@ -27,7 +27,7 @@ def obsidian_url(vault_name: str, task_path: str) -> str:
 def truncate_utf8(body: str, max_bytes: int) -> str:
     cleaned = body.strip()
     if not cleaned:
-        return "Open this task in Obsidian."
+        return ""
     encoded = cleaned.encode("utf-8")
     if len(encoded) <= max_bytes:
         return cleaned
